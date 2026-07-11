@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Claude Code local state
+.claude/
+
+# camera test output (phone-snap.sh)
+/remote.jpg
+
+# Go build output
+/bin/
+
+# SQLite DB files / backups — never commit data
+*.db
+*.db-wal
+*.db-shm
+/backups/
