@@ -11,7 +11,7 @@ Read `DEPLOYMENT.md` before changing the deployment or remote-access setup.
 ## Development
 
 - Go module: `github.com/lohit/phone-server`
-- Default listen address: `127.0.0.1:8080`
+- Default listen address: `0.0.0.0:8080` so the service is reachable on the LAN.
 - Override the port with the `PORT` environment variable.
 - Health endpoint: `GET /health`
 - Format changes with `gofmt`.
@@ -20,6 +20,8 @@ Read `DEPLOYMENT.md` before changing the deployment or remote-access setup.
 ## Deployment
 
 - Deploy from the Mac with `./deploy-phone.sh`.
+- Configure Cloudflare Tunnel with `./setup-cloudflare-tunnel.sh`; it reads
+  `CLOUDFLARE_TUNNEL_TOKEN` from the gitignored project-root `.env` file.
 - The script cross-compiles with `GOOS=android`, `GOARCH=arm64`, and `CGO_ENABLED=0`.
 - Connect to the phone only through the existing `ssh phone` alias.
 - The remote application directory is `~/apps/phone-server`.
@@ -39,8 +41,8 @@ Read `DEPLOYMENT.md` before changing the deployment or remote-access setup.
 
 ## Safety
 
-- Keep the Go service bound to `127.0.0.1`; expose it later through Cloudflare
-  Tunnel instead of router port forwarding.
+- Do not configure router port forwarding for the Go service. LAN access is allowed;
+  use Cloudflare Tunnel for any public access.
 - Never expose SSH, ADB, or Termux command execution through the HTTP service.
 - Do not commit secrets, Cloudflare credentials, device data, database files, or
   private keys.

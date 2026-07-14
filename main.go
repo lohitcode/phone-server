@@ -34,7 +34,7 @@ func main() {
 		port = "8080"
 	}
 
-	address := "127.0.0.1:" + port
+	address := "0.0.0.0:" + port
 	log.Printf("phone server listening on %s", address)
 
 	if err := http.ListenAndServe(address, nil); err != nil {

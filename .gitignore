@@ -1,6 +1,9 @@
 # macOS
 .DS_Store
 
+# Local credentials — never commit
+/.env
+
 # camera test output (phone-snap.sh)
 /remote.jpg
 
