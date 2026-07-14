@@ -19,7 +19,7 @@ Read `DEPLOYMENT.md` before changing the deployment or remote-access setup.
 
 ## Deployment
 
-- Deploy from the Mac with `./deploy-phone.sh`.
+- Deploy from the Mac with `./phone-deploy.sh`.
 - Configure Cloudflare Tunnel with `./setup-cloudflare-tunnel.sh`; it reads
   `CLOUDFLARE_TUNNEL_TOKEN` from the gitignored project-root `.env` file.
 - The script cross-compiles with `GOOS=android`, `GOARCH=arm64`, and `CGO_ENABLED=0`.
@@ -48,7 +48,7 @@ Read `DEPLOYMENT.md` before changing the deployment or remote-access setup.
   private keys.
 - Do not reboot the phone, change its SSH configuration, or alter Termux boot
   scripts unless the user explicitly requests it.
-- Preserve the PID/log-based restart behavior in `deploy-phone.sh` unless replacing
+- Preserve the PID/log-based restart behavior in `phone-deploy.sh` unless replacing
   it with a verified service manager.
 
 ## Device notes

@@ -27,7 +27,11 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	collector := newSystemCollector()
+	collector.start()
+
 	http.HandleFunc("/health", healthHandler)
+	http.HandleFunc("/api/v1/system", collector.systemHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
