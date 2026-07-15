@@ -54,7 +54,8 @@ Read `DEPLOYMENT.md` before changing the deployment or remote-access setup.
 ## Device notes
 
 - Device: CMF Phone 1 (Nothing), Android 15, ARM64
-- The Termux username and phone LAN address are local configuration; never
-  hard-code or commit them.
+- The router must reserve a stable IP for the phone so SSH and deployment
+  settings survive reboots. Never hard-code that IP or commit the phone's MAC
+  address in Markdown documentation.
 - Termux and Termux:Boot need unrestricted battery access so `sshd` remains alive.
 - Termux:Boot starts SSH using `~/.termux/boot/start-sshd`.

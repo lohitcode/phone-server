@@ -185,5 +185,6 @@ If you don't need a public URL, **Tailscale** gives point-to-point remote SSH wi
 ## Persistence checklist
 - ✅ Termux **and** Termux:Boot → *Battery → Unrestricted* (doze whitelist)
 - ✅ `termux-wake-lock` in every boot script (sshd, server, cloudflared)
-- ✅ Reserved IP on the local network (`PHONE_IP`)
+- ✅ Router DHCP reservation keeps `YOUR_RESERVED_PHONE_IP` stable across
+  reboots; each installation must set its own `PHONE_IP`
 - ⬜ Password auth disabled (key-only) — do before/with enabling the tunnel

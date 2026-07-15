@@ -1,238 +1,221 @@
-# Dedicated Android Cloud Instance
+# Pocket Cloud: Repurpose an Old Android Phone
 
-Turn an unused or broken-screen Android phone into a dedicated personal cloud
-instance using Termux, SSH, and Cloudflare Tunnel. Develop workloads on your
-personal computer, deploy them to the phone, and publish services over HTTPS
-without opening a port on the router.
+Turn an old Android phone sitting unused in a corner into your own dedicated
+personal cloud.
 
-The phone becomes a reusable ARM64 compute node rather than a single-purpose
-demo: it can host APIs, websites, scheduled jobs, databases, automation, and
-monitoring tools within Android and Termux's limits. This repository includes a
-small API workload as a working deployment example.
+The phone can run APIs, websites, scheduled jobs, databases, and automation. This
+repository includes a small API as a working example.
 
-## **Important: network reliability is the biggest constraint**
+You can also use it as an always-on home for AI tools such as
+[Hermes Agent](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/getting-started/installation.md),
+which officially supports Android through Termux, or
+[OpenClaw](https://docs.openclaw.ai/start/getting-started). OpenClaw's Android
+setup may require additional compatibility steps, so follow its current official
+documentation.
 
-This is a personal cloud instance running from your own network, so its uptime
-depends on you. The phone must remain powered, connected to reliable Wi-Fi, and
-reachable through a working router and internet connection. Cloudflare Tunnel
-removes the need for a public IP or router port forwarding, but it cannot keep
-the service online when the phone, Wi-Fi, router, power, or ISP connection is
-down. Use monitoring and a conventional cloud provider when guaranteed uptime,
-redundancy, or an SLA is required.
+<p align="center">
+  <img src="assets/1.jpeg" alt="Android phone with a broken display before being repurposed" width="380">
+</p>
 
-This repository currently powers:
+## **Important: your network is the biggest limitation**
 
-- `GET /health` — basic service health
-- `GET /api/v1/system` — cached CPU, RAM, swap, battery, storage, and uptime
+The phone must stay powered and connected to reliable Wi-Fi. The service goes
+offline if the phone, router, power, or internet connection fails. Cloudflare
+Tunnel gives you a stable public URL, but it cannot provide redundancy or an SLA.
 
 Live instance:
 
-- [https://phone.lohitcode.com/health](https://phone.lohitcode.com/health)
-- [https://phone.lohitcode.com/api/v1/system](https://phone.lohitcode.com/api/v1/system)
+- [Health](https://phone.lohitcode.com/health)
+- [Phone metrics](https://phone.lohitcode.com/api/v1/system)
+- [Source code](https://github.com/lohitcode/phone-server)
 
-## Project documentation
+For deeper details, see [DEPLOYMENT.md](DEPLOYMENT.md). Coding agents should also
+read [AGENTS.md](AGENTS.md).
 
-- [`README.md`](README.md) — start here for the complete, reproducible setup.
-- [`DEPLOYMENT.md`](DEPLOYMENT.md) — deeper deployment architecture, operating
-  trade-offs, persistence, rollback, and hardening notes.
-- [`AGENTS.md`](AGENTS.md) — repository conventions and safety rules for Codex or
-  other coding agents working on this project.
+## Fastest setup: use an AI coding agent
 
-The scripts and paths documented in this README describe the current running
-implementation. `DEPLOYMENT.md` also contains longer-term architecture ideas,
-so prefer this README when a path or command differs.
+Clone the repository on your development computer:
 
-## How it works
+~~~bash
+git clone https://github.com/lohitcode/phone-server.git
+cd phone-server
+~~~
 
-```text
-Personal computer                    Android cloud instance
-┌────────────────────┐               ┌─────────────────────────────┐
-│ Develop workload   │               │ Termux                      │
-│ Cross-compile      │  SSH/SCP      │ ├─ sshd :8022               │
-│ ./phone-deploy.sh  ├──────────────►│ ├─ application :8080        │
-└────────────────────┘               │ └─ cloudflared              │
-                                     └──────────────┬──────────────┘
-                                                    │ outbound tunnel
-                                     ┌──────────────▼──────────────┐
-Browser ─── HTTPS ──────────────────►│ Cloudflare edge + DNS       │
-                                     └─────────────────────────────┘
-```
+Open the folder in Codex, Claude Code, or another coding agent and paste:
 
-`cloudflared` and the application run on the same phone, so the Cloudflare
-origin is `http://127.0.0.1:8080`. No inbound router port forwarding is required.
+~~~text
+Read README.md, DEPLOYMENT.md, and AGENTS.md completely. Guide me through the
+Android phone setup one step at a time. Check each prerequisite and command
+before moving forward. Help me configure my reserved phone IP, ADB, Termux SSH,
+deployment, Termux:Boot, and Cloudflare Tunnel. Never expose secrets or run a
+destructive command. Ask me to complete phone or router actions when needed.
+~~~
+
+The agent can verify commands and adapt placeholders such as
+<code>YOUR_RESERVED_PHONE_IP</code> and <code>YOUR_TERMUX_USERNAME</code> to your
+setup. You still need physical access to approve USB debugging and access to
+your router and Cloudflare account.
 
 ## What you need
 
-- An Android 7+ phone and a personal computer on the same Wi-Fi for initial setup
-- A USB cable that supports data
-- A domain using Cloudflare DNS
-- [Homebrew](https://brew.sh/) or an equivalent package manager on the computer
-- [Termux](https://github.com/termux/termux-app),
-  [Termux:API](https://github.com/termux/termux-api), and
-  [Termux:Boot](https://github.com/termux/termux-boot) on the phone
+- An Android phone
+- A personal computer
+- A USB data cable
+- A Cloudflare account and domain
+- Termux, Termux:API, and Termux:Boot installed from the same source
 
-Install Termux and all its plugin apps from the **same source** (F-Droid or the
-official GitHub releases). Android will reject or break plugins signed by a
-different source.
+Useful official documentation:
 
-On the development computer (Homebrew example):
+- [Android ADB](https://developer.android.com/tools/adb)
+- [scrcpy](https://github.com/Genymobile/scrcpy)
+- [Termux](https://github.com/termux/termux-app)
+- [Termux:Boot](https://github.com/termux/termux-boot)
+- [Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/)
 
-```bash
+## 1. Enable ADB and screen access
+
+Install the development tools. This is the Homebrew example; use equivalent
+packages on other systems:
+
+~~~bash
 brew install go scrcpy
 brew install --cask android-platform-tools
-```
+~~~
 
-References:
-
-- [Android developer options](https://developer.android.com/studio/debug/dev-options)
-- [Android Debug Bridge](https://developer.android.com/tools/adb)
-- [Official scrcpy project](https://github.com/Genymobile/scrcpy)
-- [Termux installation](https://github.com/termux/termux-app#installation)
-- [Termux:Boot setup](https://github.com/termux/termux-boot#how-to-use)
-- [Cloudflare Tunnel setup](https://developers.cloudflare.com/tunnel/setup/)
-
-## 1. Prepare Android and ADB
-
-### Enable developer options
+On the phone:
 
 1. Open **Settings → About phone**.
 2. Tap **Build number** seven times.
-3. Open **Settings → System → Developer options**. The exact path can vary by
-   manufacturer.
-4. Enable **USB debugging**.
-5. Connect the phone to the computer over USB.
-6. Accept the **Allow USB debugging** prompt on the phone. Select **Always allow
-   from this computer** if this is your own trusted computer.
+3. Open **Developer options** and enable **USB debugging**.
+4. Connect USB and approve the computer when Android asks.
 
-Verify the connection:
+Check the connection:
 
-```bash
+~~~bash
 adb devices
-```
+~~~
 
-The device must appear with the state `device`, not `unauthorized`.
+The state should be <code>device</code>, not <code>unauthorized</code>. Mirror
+and control the phone with:
 
-### Mirror a working screen with scrcpy
-
-```bash
+~~~bash
 scrcpy
-```
+~~~
 
-For a phone with a broken display, the USB-debugging authorization must already
-be trusted, or the display must be temporarily repaired/connected so the prompt
-can be approved. scrcpy cannot bypass Android's lock screen or ADB authorization.
+A broken-screen phone must already trust the computer. ADB and scrcpy cannot
+bypass Android authorization or the lock screen.
 
-### Enable this project's wireless ADB mode
+### Keep the phone on one LAN address
 
-Reserve an IP address for the phone in the router first, then export it on the
-development computer:
+Reserve an address for the phone in the router so SSH and deployment settings
+do not change after a reboot. Replace <code>YOUR_RESERVED_PHONE_IP</code> below
+with that reserved address.
 
-```bash
-export PHONE_IP=YOUR_PHONE_LAN_IP
-```
+<p align="center">
+  <img src="assets/6.png" alt="Router address reservation for the Android phone" width="720">
+</p>
 
-With USB connected:
+With USB connected, enable wireless ADB:
 
-```bash
-PHONE_IP="$PHONE_IP" ./phone-adb.sh
-adb devices
-```
+~~~bash
+export PHONE_IP=YOUR_RESERVED_PHONE_IP
+./phone-adb.sh "$PHONE_IP"
+~~~
 
-You can then unplug USB and use:
+Then USB can be removed:
 
-```bash
+~~~bash
 adb -s "$PHONE_IP:5555" shell
 scrcpy --serial "$PHONE_IP:5555"
-```
+~~~
 
-This `adb tcpip` mode normally needs to be enabled again over USB after a phone
-reboot. Port `5555` is trusted-LAN access: never forward it on the router or
-publish it through Cloudflare.
+Other users can pass their own reserved address:
 
-## 2. Install and configure Termux
+~~~bash
+PHONE_IP=YOUR_RESERVED_PHONE_IP ./phone-adb.sh
+~~~
 
-Open Termux and install the required packages:
+Wireless ADB normally needs to be enabled again over USB after a reboot. Never
+forward ADB port <code>5555</code> on the router.
 
-```bash
-pkg update && pkg upgrade
+## 2. Set up Termux and SSH
+
+Install the required Termux packages:
+
+~~~bash
+pkg update
 pkg install openssh termux-api cloudflared curl
-```
+~~~
 
-The `termux-api` package provides the command-line client used by the metrics
-endpoint. The separate Termux:API Android app must also be installed. Grant the
-battery permission when Android asks for it.
+<p align="center">
+  <img src="assets/2.jpeg" alt="Termux running on the Android phone" width="380">
+</p>
 
-Check the Termux username and the phone's Wi-Fi IP:
+Find the Termux username and confirm the reserved IP:
 
-```bash
+~~~bash
 whoami
-ip addr show wlan0
-```
+termux-wifi-connectioninfo
+~~~
 
-Example placeholders:
+Recent Android versions block <code>ip addr show wlan0</code> inside Termux.
+The Wi-Fi command above returns the IP in its JSON output.
 
-```text
-username: YOUR_TERMUX_USERNAME
-IP:       YOUR_PHONE_LAN_IP
-SSH port: 8022
-```
+Start SSH on the phone:
 
-### Start SSH and install a key
-
-In Termux, create a temporary SSH password and start the daemon:
-
-```bash
+~~~bash
 passwd
 sshd
-```
+~~~
 
-Termux SSH listens on port `8022`. On the development computer, create a key if
-needed and copy it to the phone:
+On the development computer, copy an SSH key to the phone. Replace the username
+with the result from <code>whoami</code>:
 
-```bash
+~~~bash
 test -f ~/.ssh/id_ed25519 || ssh-keygen -t ed25519
-ssh-copy-id -p 8022 YOUR_TERMUX_USERNAME@PHONE_IP
-ssh -p 8022 YOUR_TERMUX_USERNAME@PHONE_IP
-```
+ssh-copy-id -p 8022 YOUR_TERMUX_USERNAME@YOUR_RESERVED_PHONE_IP
+~~~
 
-Add a convenient alias to `~/.ssh/config` on the development computer:
+Add this to <code>~/.ssh/config</code>:
 
-```sshconfig
+~~~sshconfig
 Host phone
-    HostName PHONE_IP
+    HostName YOUR_RESERVED_PHONE_IP
     Port 8022
     User YOUR_TERMUX_USERNAME
     IdentityFile ~/.ssh/id_ed25519
-```
+~~~
 
 Test it:
 
-```bash
+~~~bash
 ssh phone
-```
+~~~
 
-After key authentication works, disable password login on the phone by setting
-the following in `$PREFIX/etc/ssh/sshd_config`:
+<p align="center">
+  <img src="assets/5.png" alt="SSH session connected to the Android cloud instance" width="680">
+</p>
 
-```text
+After key login works, you can disable password login in
+<code>$PREFIX/etc/ssh/sshd_config</code>:
+
+~~~text
 PasswordAuthentication no
 PubkeyAuthentication yes
-```
+~~~
 
-Restart SSH from Termux:
+Restart SSH only after keeping another Termux session open:
 
-```bash
+~~~bash
 pkill sshd
 sshd
-```
-
-Keep the current Termux session open until a new `ssh phone` connection succeeds.
+~~~
 
 ### Start SSH after reboot
 
-Open the Termux:Boot Android app once after installing it. Then run in Termux:
+Open the Termux:Boot app once, then run this in Termux:
 
-```bash
+~~~bash
 mkdir -p ~/.termux/boot
 cat > ~/.termux/boot/start-sshd <<'EOF'
 #!/data/data/com.termux/files/usr/bin/sh
@@ -240,74 +223,48 @@ termux-wake-lock
 sshd
 EOF
 chmod 700 ~/.termux/boot/start-sshd
-```
+~~~
 
-In Android settings, set battery usage to **Unrestricted** for Termux,
-Termux:API, and Termux:Boot. Do not expose SSH port `8022` through router port
-forwarding.
+Set Android battery usage to **Unrestricted** for Termux, Termux:API, and
+Termux:Boot.
 
-## 3. Deploy the included workload
+## 3. Deploy the included application
 
-Clone this repository on the development computer:
+From the cloned repository on the development computer:
 
-```bash
-git clone https://github.com/lohitcode/phone-server.git
-cd phone-server
-```
-
-The included workload is implemented in Go so it can be cross-compiled into one
-small ARM64 binary. Run it locally while developing:
-
-```bash
-go run .
-curl http://127.0.0.1:8080/health
-```
-
-Run the tests and deploy:
-
-```bash
+~~~bash
 go test ./...
 ./phone-deploy.sh
-```
+~~~
 
-The deployment script:
+The deploy script builds an Android ARM64 binary, uploads it over
+<code>ssh phone</code>, restarts it, and checks <code>/health</code>.
 
-1. Cross-compiles a static Android ARM64 binary with `CGO_ENABLED=0`.
-2. Connects using the `ssh phone` alias.
-3. Uploads the binary to `~/apps/phone-server`.
-4. Stops the previous PID, swaps in the new binary, and starts it with `nohup`.
-5. Verifies `http://127.0.0.1:8080/health` on the phone.
+Verify it:
 
-Useful commands:
-
-```bash
-# Verify through the phone itself
+~~~bash
 ssh phone 'curl --fail http://127.0.0.1:8080/health'
+curl http://YOUR_RESERVED_PHONE_IP:8080/health
+~~~
 
-# Verify over the LAN
-curl http://PHONE_IP:8080/health
+Follow logs with:
 
-# Follow application logs
+~~~bash
 ssh phone 'tail -f ~/apps/phone-server/phone-server.log'
+~~~
 
-# Override the SSH alias or remote directory
-PHONE_HOST=my-phone PHONE_APP_DIR=apps/phone-server ./phone-deploy.sh
-```
-
-The application binds to `0.0.0.0:8080`. LAN access is intentional; router port
-forwarding is not.
+Press <code>Ctrl+C</code> to stop following logs.
 
 ### Start the application after reboot
 
-Create another Termux:Boot script on the phone:
+Run this in Termux:
 
-```bash
+~~~bash
 cat > ~/.termux/boot/start-phone-server <<'EOF'
 #!/data/data/com.termux/files/usr/bin/sh
 termux-wake-lock
 
-APP_DIR="$HOME/apps/phone-server"
-cd "$APP_DIR" || exit 0
+cd "$HOME/apps/phone-server" || exit 0
 
 if [ -x ./phone-server ] && ! pgrep -f '[p]hone-server' >/dev/null; then
   nohup ./phone-server >> phone-server.log 2>&1 < /dev/null &
@@ -315,223 +272,101 @@ if [ -x ./phone-server ] && ! pgrep -f '[p]hone-server' >/dev/null; then
 fi
 EOF
 chmod 700 ~/.termux/boot/start-phone-server
-```
+~~~
 
 Test it without rebooting:
 
-```bash
+~~~bash
 ~/.termux/boot/start-phone-server
 curl http://127.0.0.1:8080/health
-```
+~~~
 
-## 4. Create a Cloudflare Tunnel
+## 4. Publish it with Cloudflare Tunnel
 
-This project uses a **remotely managed tunnel**. Its hostname-to-origin routing
-is stored in Cloudflare, while the tunnel token stays on the phone.
+Full reference: [Cloudflare Tunnel documentation](https://developers.cloudflare.com/tunnel/)
 
-### Create the tunnel in the dashboard
+In the Cloudflare dashboard:
 
-1. Sign in to the [Cloudflare dashboard](https://dash.cloudflare.com/).
-2. Ensure the domain you want to use is active in Cloudflare DNS.
-3. Go to **Networking → Tunnels**.
-4. Select **Create a tunnel**.
-5. Choose **Cloudflared** and give it a name, such as `android-cloud`.
-6. Continue to the connector installation screen.
-7. The dashboard may show commands for several desktop/server operating systems
-   or Docker.
-   Do **not** run the Debian/Red Hat `sudo` commands in Termux. Termux is Android,
-   and `cloudflared` was already installed with `pkg`.
-8. Copy only the tunnel token from the displayed
-   `cloudflared tunnel run --token ...` command. Treat it like a password.
+1. Open **Networking → Tunnels**.
+2. Select **Create a tunnel → Cloudflared**.
+3. Name the tunnel.
+4. Copy the token from the displayed <code>cloudflared tunnel run</code> command.
+5. Do not run the Debian or Red Hat <code>sudo</code> commands in Termux.
 
-If a tunnel token is pasted into chat, logs, or a public repository, use
-**Rotate token** in the tunnel dashboard and replace it immediately.
+From the repository on the development computer:
 
-### Store the token locally and configure the phone
-
-Create a gitignored `.env` in the project root on the development computer:
-
-```bash
-printf 'CLOUDFLARE_TUNNEL_TOKEN=%s\n' 'PASTE_NEW_TOKEN_HERE' > .env
-chmod 600 .env
+~~~bash
 ./setup-cloudflare-tunnel.sh
-```
+~~~
 
-The setup script securely copies the token to
-`~/.config/cloudflared/tunnel-token`, installs
-`~/.termux/boot/start-cloudflared`, starts the connector, and writes logs to
-`~/.config/cloudflared/cloudflared.log`.
+Paste the new tunnel token when prompted. The script stores it in the ignored
+<code>.env</code> file, copies it securely to the phone, starts Cloudflare, and
+adds a Termux:Boot launcher.
 
-Confirm that it is connected:
+Check the connector:
 
-```bash
+~~~bash
 ssh phone "pgrep -af '[c]loudflared tunnel run'"
-ssh phone 'tail -f ~/.config/cloudflared/cloudflared.log'
-```
+~~~
 
-The Cloudflare dashboard should show the tunnel as **Healthy** with an
-`android_arm64` connector.
+The dashboard should show the connector as **Healthy**.
 
-Cloudflare documents token files for remotely managed tunnels in its
-[tunnel run parameters](https://developers.cloudflare.com/tunnel/advanced/run-parameters/#token-file).
+### Assign the domain and port
 
-## 5. Assign the domain and port in Cloudflare
+Open the tunnel and select **Routes → Add route → Published application**:
 
-Starting a connector is not enough; the tunnel also needs a published
-application route:
+- Hostname: <code>phone.lohitcode.com</code>
+- Service type: <code>HTTP</code>
+- Service URL: <code>http://127.0.0.1:8080</code>
 
-1. In **Networking → Tunnels**, open the tunnel.
-2. Open **Routes** and select **Add route**.
-3. Choose **Published application**.
-4. Under **Hostname**, choose your Cloudflare domain. Enter a subdomain such as
-   `phone` for `phone.example.com`. This project uses `phone.lohitcode.com`.
-5. Set **Service type** to `HTTP`.
-6. Set **Service URL** to:
+Save the route. Cloudflare creates the DNS mapping and provides public HTTPS.
 
-   ```text
-   http://127.0.0.1:8080
-   ```
+Verify:
 
-7. Save the route.
-
-Cloudflare will create/manage the DNS record that points the hostname to the
-tunnel. The browser connects to Cloudflare over HTTPS; Cloudflare forwards the
-request through the encrypted tunnel to port `8080` on the phone.
-
-Official reference: [Publish an application through Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/setup/#publish-an-application).
-
-Verify from any network:
-
-```bash
+~~~bash
 curl https://phone.lohitcode.com/health
 curl https://phone.lohitcode.com/api/v1/system
-```
+~~~
 
-Expected health response:
+## 5. Phone metrics
 
-```json
-{"status":"ok","timestamp":"2026-07-15T00:00:00Z"}
-```
+<p align="center">
+  <img src="assets/3.png" alt="Geekbench result showing 1000 single-core and 2669 multi-core" width="380">
+</p>
 
-## 6. Live metrics endpoint
+<code>GET /api/v1/system</code> returns:
 
-`GET /api/v1/system` returns a public, recruiter-safe subset of phone metrics:
+- CPU cores and Termux-visible usage
+- Available and used RAM
+- Swap usage
+- Battery level, health, charging state, and temperature
+- Storage
+- Uptime
+- Sample freshness
 
-```json
-{
-  "status": "ok",
-  "timestamp": "2026-07-15T00:00:00Z",
-  "uptime": "2 hours, 10 minutes",
-  "cpu": {"cores": 8, "usage_percent": 0.3},
-  "memory": {
-    "total_mb": 5416,
-    "available_mb": 2500,
-    "used_percent": 53.8,
-    "swap_total_mb": 6143,
-    "swap_used_mb": 1100
-  },
-  "battery": {
-    "percentage": 90,
-    "status": "DISCHARGING",
-    "health": "GOOD",
-    "temperature_celsius": 34
-  },
-  "storage": {
-    "total_gb": 108,
-    "available_gb": 95.8,
-    "used_percent": 11
-  },
-  "freshness": {
-    "cpu_memory": "2026-07-15T00:00:00Z",
-    "battery_storage": "2026-07-15T00:00:00Z"
-  }
-}
-```
+CPU and RAM refresh every 5 seconds. Battery and storage refresh every 30
+seconds. HTTP requests use the cached values instead of starting new system
+commands.
 
-CPU and memory are sampled every 5 seconds. Battery, storage, and uptime are
-sampled every 30 seconds. Requests read the cached snapshot instead of launching
-commands. Android prevents an ordinary Termux app from reading every
-system-wide CPU counter, so CPU usage represents the Termux-visible workload
-normalized across the phone's cores.
+## Quick troubleshooting
 
-## Troubleshooting
-
-### `adb devices` shows `unauthorized`
-
-Unlock the phone and accept the debugging prompt. If necessary, use **Developer
-options → Revoke USB debugging authorizations**, reconnect USB, and approve the
-computer again.
-
-### Wireless ADB stopped working
-
-Connect USB and rerun `./phone-adb.sh`. Also confirm the phone still has the IP
-configured in the script.
-
-### `ssh phone` says `No route to host`
-
-- Confirm the development computer and phone are on the same LAN.
-- Check the router reservation and the `HostName` in `~/.ssh/config`.
-- Open Termux through ADB/scrcpy and run `sshd`.
-- Test the port with `nc -vz PHONE_IP 8022`.
-
-The deployment script deliberately uses `ssh phone`, not a hard-coded SSH
-command, so the alias remains the source of truth.
-
-### Deployment health check fails
-
-```bash
-ssh phone 'cat ~/apps/phone-server/phone-server.log'
-ssh phone 'cat ~/apps/phone-server/phone-server.pid'
-ssh phone 'curl -v http://127.0.0.1:8080/health'
-```
-
-Make sure no other process occupies port `8080`.
-
-### Tunnel is Healthy but the hostname returns `404`
-
-The connector is running but no matching route exists. Add a **Published
-application** route whose hostname matches the requested domain and whose
-service is `http://127.0.0.1:8080`.
-
-### Cloudflare returns `502 Bad Gateway`
-
-Cloudflare can reach the connector, but the connector cannot reach the
-application. Deploy/start the application and verify its local health URL from
-the phone.
-
-### `A DNS record managed by Workers already exists on that host`
-
-That hostname is already assigned to a Cloudflare Worker route/custom domain.
-Remove the conflicting Worker mapping in Cloudflare or publish this tunnel on a
-different subdomain, then add the tunnel route again.
-
-### Services do not start after reboot
-
-- Open Termux:Boot once after installation.
-- Set Termux, Termux:API, and Termux:Boot battery usage to **Unrestricted**.
-- Confirm scripts exist and are executable with `ls -l ~/.termux/boot`.
-- Run each boot script manually and inspect its log before reboot testing.
-
-## Security notes
-
-- Never commit `.env`, tunnel tokens, SSH keys, or device data.
-- Never expose ADB `5555`, SSH `8022`, or the application port `8080` using
-  router port forwarding.
-- Use SSH keys and disable SSH password authentication after verifying the key.
-- Keep public API responses aggregate and non-sensitive. Do not add arbitrary
-  shell execution, process lists, environment variables, IP addresses, or device
-  identifiers to HTTP endpoints.
-- Add [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/access-controls/) before publishing private dashboards or administrative APIs.
-
-## Repository scripts
-
-| Script | Purpose |
+| Problem | What to do |
 | --- | --- |
-| `phone-adb.sh` | Enables wireless ADB on `PHONE_IP:5555` after a USB connection |
-| `phone-deploy.sh` | Cross-compiles, uploads, restarts, and health-checks the included workload |
-| `setup-cloudflare-tunnel.sh` | Installs the tunnel token and Termux:Boot launcher |
-| `phone-snap.sh` | Takes a photo through Termux:API and copies it to the development computer |
+| ADB says <code>unauthorized</code> | Unlock the phone, reconnect USB, and approve the computer. |
+| Wireless ADB stopped | Connect USB and run <code>./phone-adb.sh</code> again. |
+| <code>ssh phone</code> fails | Confirm the phone is using <code>YOUR_RESERVED_PHONE_IP</code> and run <code>sshd</code> in Termux. |
+| Deployment fails | Check <code>~/apps/phone-server/phone-server.log</code> on the phone. |
+| Tunnel is Healthy but returns 404 | Add a Published application route for the exact hostname. |
+| Cloudflare returns 502 | Start the application and test <code>http://127.0.0.1:8080/health</code> on the phone. |
+| Services stop after reboot | Open Termux:Boot once, allow Unrestricted battery use, and check <code>~/.termux/boot</code>. |
 
-## License
+## Security
 
-Add a license before reusing this project beyond personal experimentation.
+- Never commit <code>.env</code>, tunnel tokens, SSH keys, databases, or device
+  data.
+- Never port-forward ADB <code>5555</code>, SSH <code>8022</code>, or application
+  port <code>8080</code>.
+- Use SSH keys and disable password login after testing them.
+- Keep public endpoints read-only and free of device identifiers or shell access.
+- Use [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/access-controls/)
+  before publishing private or administrative tools.
