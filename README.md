@@ -25,7 +25,10 @@ This repository currently powers:
 - `GET /health` — basic service health
 - `GET /api/v1/system` — cached CPU, RAM, swap, battery, storage, and uptime
 
-Live example: [https://lohitcode.com/health](https://lohitcode.com/health)
+Live instance:
+
+- [https://phone.lohitcode.com/health](https://phone.lohitcode.com/health)
+- [https://phone.lohitcode.com/api/v1/system](https://phone.lohitcode.com/api/v1/system)
 
 ## Project documentation
 
@@ -378,8 +381,7 @@ application route:
 2. Open **Routes** and select **Add route**.
 3. Choose **Published application**.
 4. Under **Hostname**, choose your Cloudflare domain. Enter a subdomain such as
-   `phone` for `phone.example.com`, or leave the subdomain empty to use the apex
-   domain when the dashboard permits it.
+   `phone` for `phone.example.com`. This project uses `phone.lohitcode.com`.
 5. Set **Service type** to `HTTP`.
 6. Set **Service URL** to:
 
@@ -398,8 +400,8 @@ Official reference: [Publish an application through Cloudflare Tunnel](https://d
 Verify from any network:
 
 ```bash
-curl https://YOUR_DOMAIN/health
-curl https://YOUR_DOMAIN/api/v1/system
+curl https://phone.lohitcode.com/health
+curl https://phone.lohitcode.com/api/v1/system
 ```
 
 Expected health response:
