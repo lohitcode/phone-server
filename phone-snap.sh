@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# phone-snap: take a photo with the phone's camera and pull it to the Mac.
+# phone-snap: take a photo and pull it to the development computer.
 #
 # USAGE
 #   ./phone-snap.sh             # saves ./remote.jpg

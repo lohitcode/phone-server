@@ -1,17 +1,17 @@
 # Phone-Server Deployment Strategy
 
-> Dev on Mac → ship binary → run on phone (native Termux) → reachable on **LAN** and **remotely via Cloudflare Tunnel**.
+> Develop on a personal computer → ship binary → run on a phone (native Termux) → reach it on the **LAN** or **remotely through Cloudflare Tunnel**.
 
 ## Architecture
 
 ```
-┌────────────── Mac / any device, from anywhere ───────────┐
+┌────── Development computer / any device, anywhere ───────┐
 │  ssh phone-tunnel   →  cloudflared access (ProxyCommand)  │
 │  curl https://api.yourdomain.com/health                   │
 └─────────────────┬─────────────────────────────────────────┘
                   │ Cloudflare edge (Zero Trust + Access)
                   │ outbound-only tunnel (QUIC / HTTP2)
-┌──────────────────▼──────────────────── Phone 192.168.0.2 ─┐
+┌──────────────────▼──────────────────────── Android phone ─┐
 │  Termux (native, no proot)                                 │
 │   ├─ sshd            :8022   (LAN: `ssh phone`)            │
 │   ├─ Go server       :8080   ~/srv/server + data/app.db    │
@@ -24,21 +24,21 @@
 ```
 
 **Principles**
-- Source + builds on Mac; only binaries + DB live on the phone.
+- Source and builds stay on the development computer; only binaries and data live on the phone.
 - The tunnel is **outbound-only**: no router port-forwarding, no public IP, works on any Wi-Fi the phone joins.
 
 ---
 
-## Part A — Build & ship (Mac → phone)
+## Part A — Build and ship (development computer → phone)
 
-### 1. Build (Mac)
+### 1. Build (development computer)
 Pure-Go only. DB driver: **`modernc.org/sqlite`** (pure Go) — ❌ not `mattn/go-sqlite3` (CGO → needs Android NDK for cross-compile).
 ```bash
 CGO_ENABLED=0 GOOS=android GOARCH=arm64 \
   go build -trimpath -ldflags="-s -w" -o bin/server .
 ```
 - `CGO_ENABLED=0` → clean cross-compile
-- `-trimpath` → reproducible, strips Mac paths
+- `-trimpath` → reproducible, strips local build paths
 - `-ldflags="-s -w"` → strip debug → ~5–6 MB (from 8)
 
 ### 2. Phone layout (keep deploy separate from scratch)
@@ -51,7 +51,7 @@ CGO_ENABLED=0 GOOS=android GOARCH=arm64 \
 ~/workspace/        # scratch / on-device experiments
 ```
 
-### 3. Deploy script — `phone-deploy.sh` (Mac)
+### 3. Deploy script — `phone-deploy.sh` (development computer)
 `build (strip) → stop old (pidfile) → backup → scp → start detached → health-check`
 - Stop old: `kill $(cat ~/srv/server.pid)` — **pidfile**, not `pkill` by path (argv[0] is `./server`).
 - Start: `setsid ./server </dev/null >>server.log 2>&1 & echo $! >server.pid` — `setsid` avoids the SSH-hang gotcha.
@@ -79,7 +79,7 @@ Bind **`:8080`** (`0.0.0.0`), not `127.0.0.1` — required for LAN reach (cloudf
 
 ### 6. SQLite
 - WAL mode: `PRAGMA journal_mode=WAL`.
-- **Backup from the Mac on a schedule** (phone = single point of failure): `scp phone:~/srv/data/app.db ./backups/` or `sqlite3 app.db ".backup './backups/app.db'"`.
+- **Back up to the development computer on a schedule** (the phone is a single point of failure): `scp phone:~/srv/data/app.db ./backups/` or `sqlite3 app.db ".backup './backups/app.db'"`.
 
 ### 7. Rollback
 `cp ~/srv/server ~/srv/server.bak` before every deploy; on failure → `cp server.bak server` + restart.
@@ -94,7 +94,7 @@ Lets you `ssh` into the phone and hit the Go API from **anywhere**, not just you
 - A **Cloudflare account** + a **domain on Cloudflare DNS**.
 - **Zero Trust** (free tier covers personal use).
 
-### 9. One-time setup (on the Mac — browser auth is easy there)
+### 9. One-time setup (on the development computer)
 ```bash
 brew install cloudflared
 cloudflared tunnel login                      # browser auth, picks your domain
@@ -125,7 +125,7 @@ Fallback if the native build errors: run the prebuilt `cloudflared-linux-arm64` 
 
 ### 11. Copy creds to the phone + run
 ```bash
-# from Mac
+# from the development computer
 scp ~/.cloudflared/<UUID>.json phone:~/cloudflared/
 scp config.yml phone:~/cloudflared/
 ```
@@ -147,13 +147,13 @@ while :; do
 done
 ```
 
-### 14. Remote SSH from the Mac (native ssh)
+### 14. Remote SSH from the development computer
 `brew install cloudflared` (already done above). Add to `~/.ssh/config`:
 ```
 Host phone-tunnel
     HostName ssh.yourdomain.com
-    ProxyCommand /opt/homebrew/bin/cloudflared access ssh --hostname %h
-    User u0_a230
+    ProxyCommand cloudflared access ssh --hostname %h
+    User YOUR_TERMUX_USERNAME
 ```
 Then `ssh phone-tunnel` works from anywhere (Access SSO prompt on first use, token cached). Keep `ssh phone` for fast LAN access.
 
@@ -185,5 +185,5 @@ If you don't need a public URL, **Tailscale** gives point-to-point remote SSH wi
 ## Persistence checklist
 - ✅ Termux **and** Termux:Boot → *Battery → Unrestricted* (doze whitelist)
 - ✅ `termux-wake-lock` in every boot script (sshd, server, cloudflared)
-- ✅ Static IP on LAN (192.168.0.2)
+- ✅ Reserved IP on the local network (`PHONE_IP`)
 - ⬜ Password auth disabled (key-only) — do before/with enabling the tunnel

@@ -124,22 +124,25 @@ can be approved. scrcpy cannot bypass Android's lock screen or ADB authorization
 
 ### Enable this project's wireless ADB mode
 
-Reserve an IP address for the phone in the router first. This project currently
-uses `192.168.0.2`; change `IP` in `phone-adb.sh` if your phone uses a different
-address.
+Reserve an IP address for the phone in the router first, then export it on the
+development computer:
+
+```bash
+export PHONE_IP=YOUR_PHONE_LAN_IP
+```
 
 With USB connected:
 
 ```bash
-./phone-adb.sh
+PHONE_IP="$PHONE_IP" ./phone-adb.sh
 adb devices
 ```
 
 You can then unplug USB and use:
 
 ```bash
-adb -s 192.168.0.2:5555 shell
-scrcpy --serial 192.168.0.2:5555
+adb -s "$PHONE_IP:5555" shell
+scrcpy --serial "$PHONE_IP:5555"
 ```
 
 This `adb tcpip` mode normally needs to be enabled again over USB after a phone
@@ -166,11 +169,11 @@ whoami
 ip addr show wlan0
 ```
 
-Example values used by this project:
+Example placeholders:
 
 ```text
-username: u0_a230
-IP:       192.168.0.2
+username: YOUR_TERMUX_USERNAME
+IP:       YOUR_PHONE_LAN_IP
 SSH port: 8022
 ```
 

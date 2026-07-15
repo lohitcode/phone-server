@@ -7,16 +7,22 @@
 #   So after each reboot you re-trigger it once over USB, then go wireless.
 #
 # USAGE
-#   1. Plug the phone into the Mac via USB.
-#   2. Run:  ./phone-adb.sh        (or:  bash phone-adb.sh)
-#   3. Unplug USB. Wireless ADB on 192.168.0.2:5555 works until next reboot.
+#   1. Plug the phone into the development computer via USB.
+#   2. Run:  PHONE_IP=192.0.2.10 ./phone-adb.sh
+#   3. Unplug USB. Wireless ADB on PHONE_IP:5555 works until next reboot.
 #
 # RECOVERY
-#   If 192.168.0.2:5555 ever stops working, just re-run this script with USB in.
+#   If wireless ADB stops working, re-run this script with USB connected.
 
 set -euo pipefail
-IP=192.168.0.2
+IP="${PHONE_IP:-${1:-}}"
 PORT=5555
+
+if [[ -z "$IP" ]]; then
+  echo "Usage: PHONE_IP=<phone-lan-ip> ./phone-adb.sh" >&2
+  echo "   or: ./phone-adb.sh <phone-lan-ip>" >&2
+  exit 2
+fi
 
 echo ">> checking for a USB-attached device..."
 if ! adb devices | grep -Eq $'\tdevice$'; then

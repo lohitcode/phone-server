@@ -3,7 +3,7 @@
 ## Project
 
 This repository contains a small Go HTTP service deployed to a headless CMF Phone 1
-running Termux. The Mac is the development and build machine; the phone is the
+running Termux. A personal computer is the development and build machine; the phone is the
 deployment target.
 
 Read `DEPLOYMENT.md` before changing the deployment or remote-access setup.
@@ -19,7 +19,7 @@ Read `DEPLOYMENT.md` before changing the deployment or remote-access setup.
 
 ## Deployment
 
-- Deploy from the Mac with `./phone-deploy.sh`.
+- Deploy from the development computer with `./phone-deploy.sh`.
 - Configure Cloudflare Tunnel with `./setup-cloudflare-tunnel.sh`; it reads
   `CLOUDFLARE_TUNNEL_TOKEN` from the gitignored project-root `.env` file.
 - The script cross-compiles with `GOOS=android`, `GOARCH=arm64`, and `CGO_ENABLED=0`.
@@ -54,7 +54,7 @@ Read `DEPLOYMENT.md` before changing the deployment or remote-access setup.
 ## Device notes
 
 - Device: CMF Phone 1 (Nothing), Android 15, ARM64
-- Termux user: `u0_a230`
-- The router currently reserves `192.168.0.2` for the phone.
+- The Termux username and phone LAN address are local configuration; never
+  hard-code or commit them.
 - Termux and Termux:Boot need unrestricted battery access so `sshd` remains alive.
 - Termux:Boot starts SSH using `~/.termux/boot/start-sshd`.
