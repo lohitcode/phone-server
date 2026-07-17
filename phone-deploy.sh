@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-HOST="${PHONE_HOST:-phone}"
+HOST="phone"
 APP_NAME="phone-server"
 REMOTE_DIR="${PHONE_APP_DIR:-apps/$APP_NAME}"
 LOCAL_BINARY="$(mktemp -t "${APP_NAME}.XXXXXX")"

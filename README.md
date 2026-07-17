@@ -237,6 +237,16 @@ go test ./...
 ./phone-deploy.sh
 ~~~
 
+The development computer uses two SSH aliases: `phone` connects through
+Cloudflare at `ssh.lohitcode.com` and works remotely, while `phone-lan` connects
+directly to the reserved LAN address for lower latency on the same Wi-Fi.
+
+All SSH-based helpers use `phone`, so deployments and camera transfers work
+remotely by default. Use `ssh phone-lan` manually when local speed matters.
+`phone-adb.sh` remains USB/LAN-only because the Cloudflare SSH tunnel does not
+carry ADB port 5555. If the phone-side tunnel is stopped, use `phone-lan` to
+repair it while connected to the same network.
+
 The deploy script builds an Android ARM64 binary, uploads it over
 <code>ssh phone</code>, restarts it, and checks <code>/health</code>.
 

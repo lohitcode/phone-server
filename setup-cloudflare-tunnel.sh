@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-HOST="${PHONE_HOST:-phone}"
+HOST="phone"
 ENV_FILE=".env"
 REMOTE_CONFIG_DIR=".config/cloudflared"
 REMOTE_TOKEN_FILE="$REMOTE_CONFIG_DIR/tunnel-token"
